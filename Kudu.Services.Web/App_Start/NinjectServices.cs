@@ -136,16 +136,12 @@ namespace Kudu.Services.Web.App_Start
             kernel.Bind<ITraceFactory>().ToConstant(traceFactory);
             TraceServices.SetTraceFactory(createTracerThunk, createLoggerThunk);
 
-            // Setup the deployment lock
             string lockPath = Path.Combine(environment.SiteRootPath, Constants.LockPath);
-            string deploymentLockPath = Path.Combine(lockPath, Constants.DeploymentLockFile);
             string statusLockPath = Path.Combine(lockPath, Constants.StatusLockFile);
             string sshKeyLockPath = Path.Combine(lockPath, Constants.SSHKeyLockFile);
             string hooksLockPath = Path.Combine(lockPath, Constants.HooksLockFile);
 
             var fileSystem = new FileSystem();
-            _deploymentLock = new LockFile(deploymentLockPath, kernel.Get<ITraceFactory>(), fileSystem);
-            _deploymentLock.InitializeAsyncLocks();
 
             var statusLock = new LockFile(statusLockPath, kernel.Get<ITraceFactory>(), fileSystem);
             var sshKeyLock = new LockFile(sshKeyLockPath, kernel.Get<ITraceFactory>(), fileSystem);
@@ -154,7 +150,6 @@ namespace Kudu.Services.Web.App_Start
             kernel.Bind<IOperationLock>().ToConstant(sshKeyLock).WhenInjectedInto<SSHKeyController>();
             kernel.Bind<IOperationLock>().ToConstant(statusLock).WhenInjectedInto<DeploymentStatusManager>();
             kernel.Bind<IOperationLock>().ToConstant(hooksLock).WhenInjectedInto<WebHooksManager>();
-            kernel.Bind<IOperationLock>().ToConstant(_deploymentLock);
 
             kernel.Bind<IAnalytics>().ToMethod(context => new Analytics(context.Kernel.Get<IDeploymentSettingsManager>(),
                                                                         fileSystem,
@@ -238,6 +233,14 @@ namespace Kudu.Services.Web.App_Start
 
             kernel.Bind<IRepositoryFactory>().To<RepositoryFactory>()
                                              .InRequestScope();
+
+            // Setup the deployment lock
+            string deploymentLockPath = Path.Combine(lockPath, Constants.DeploymentLockFile);
+            _deploymentLock = new DeploymentLockFile(deploymentLockPath, kernel.Get<ITraceFactory>(), fileSystem, kernel.Get<IRepository>());
+            _deploymentLock.InitializeAsyncLocks();
+
+            kernel.Bind<IOperationLock>().ToConstant(_deploymentLock);
+
 
             // Git server
             kernel.Bind<IDeploymentEnvironment>().To<DeploymentEnvrionment>();
