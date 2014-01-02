@@ -137,19 +137,20 @@ namespace Kudu.Services.Web.App_Start
             TraceServices.SetTraceFactory(createTracerThunk, createLoggerThunk);
 
             // Setup the deployment lock
+
             string lockPath = Path.Combine(environment.SiteRootPath, Constants.LockPath);
-            string deploymentLockPath = Path.Combine(lockPath, Constants.DeploymentLockFile);
             string statusLockPath = Path.Combine(lockPath, Constants.StatusLockFile);
             string sshKeyLockPath = Path.Combine(lockPath, Constants.SSHKeyLockFile);
             string hooksLockPath = Path.Combine(lockPath, Constants.HooksLockFile);
+            string deploymentLockPath = Path.Combine(lockPath, Constants.DeploymentLockFile);
 
             var fileSystem = new FileSystem();
-            _deploymentLock = new LockFile(deploymentLockPath, kernel.Get<ITraceFactory>(), fileSystem);
-            _deploymentLock.InitializeAsyncLocks();
 
             var statusLock = new LockFile(statusLockPath, kernel.Get<ITraceFactory>(), fileSystem);
             var sshKeyLock = new LockFile(sshKeyLockPath, kernel.Get<ITraceFactory>(), fileSystem);
             var hooksLock = new LockFile(hooksLockPath, kernel.Get<ITraceFactory>(), fileSystem);
+            _deploymentLock = new DeploymentLockFile(deploymentLockPath, kernel.Get<ITraceFactory>(), fileSystem, kernel.Get<IRepository>());
+            _deploymentLock.InitializeAsyncLocks();
 
             kernel.Bind<IOperationLock>().ToConstant(sshKeyLock).WhenInjectedInto<SSHKeyController>();
             kernel.Bind<IOperationLock>().ToConstant(statusLock).WhenInjectedInto<DeploymentStatusManager>();
