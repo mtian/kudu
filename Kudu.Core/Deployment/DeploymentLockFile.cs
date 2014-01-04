@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Threading.Tasks;
 using Kudu.Contracts.SourceControl;
@@ -8,7 +9,7 @@ using Kudu.Core.Tracing;
 
 namespace Kudu.Core.Deployment
 {
-    public class DeploymentLockFile : LockFile
+    public class DeploymentLockFile : LockFile, IDisposable
     {
         private readonly IRepositoryFactory _repositoryFactory;
 
@@ -25,6 +26,12 @@ namespace Kudu.Core.Deployment
                 ;
             var repository = _repositoryFactory.GetRepository();
             repository.ClearLock();
+        }
+
+
+        public void Dispose()
+        {
+            TerminateAsyncLocks();
         }
     }
 }

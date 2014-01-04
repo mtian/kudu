@@ -39,16 +39,25 @@ namespace Kudu.Core.Infrastructure
 
         public void InitializeAsyncLocks()
         {
-            _lockRequestQueue = new ConcurrentQueue<QueueItem>();
+            if (_lockRequestQueue == null)
+            {
+                lock (this)
+                {
+                    if (_lockRequestQueue == null)
+                    {
+                        _lockRequestQueue = new ConcurrentQueue<QueueItem>();
 
-            FileSystemHelpers.EnsureDirectory(_fileSystem, Path.GetDirectoryName(_path));
+                        FileSystemHelpers.EnsureDirectory(_fileSystem, Path.GetDirectoryName(_path));
 
-            // Set up lock file watcher. Note that depending on how the file is accessed the file watcher may generate multiple events.
-            _lockFileWatcher = new FileSystemWatcher(_fileSystem.Path.GetDirectoryName(_path), _fileSystem.Path.GetFileName(_path));
-            _lockFileWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName;
-            _lockFileWatcher.Changed += OnLockReleased;
-            _lockFileWatcher.Deleted += OnLockReleased;
-            _lockFileWatcher.EnableRaisingEvents = true;
+                        // Set up lock file watcher. Note that depending on how the file is accessed the file watcher may generate multiple events.
+                        _lockFileWatcher = new FileSystemWatcher(_fileSystem.Path.GetDirectoryName(_path), _fileSystem.Path.GetFileName(_path));
+                        _lockFileWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName;
+                        _lockFileWatcher.Changed += OnLockReleased;
+                        _lockFileWatcher.Deleted += OnLockReleased;
+                        _lockFileWatcher.EnableRaisingEvents = true;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -123,10 +132,11 @@ namespace Kudu.Core.Infrastructure
         /// <returns>Task indicating the task of acquiring the lock.</returns>
         public Task LockAsync()
         {
-            if (_lockFileWatcher == null)
-            {
-                throw new InvalidOperationException(Resources.Error_AsyncLockNotInitialized);
-            }
+            InitializeAsyncLocks();
+            //if (_lockFileWatcher == null)
+            //{
+            //    throw new InvalidOperationException(Resources.Error_AsyncLockNotInitialized);
+            //}
 
             // See if we can get the lock -- if not then enqueue lock request.
             if (Lock())

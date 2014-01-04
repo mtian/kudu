@@ -55,7 +55,7 @@ namespace Kudu.Services.Web.App_Start
         private static readonly Bootstrapper _bootstrapper = new Bootstrapper();
 
         // Due to a bug in Ninject we can't use Dispose to clean up LockFile so we shut it down manually
-        private static LockFile _deploymentLock;
+        //private static LockFile _deploymentLock;
 
         private static event Action Shutdown;
 
@@ -79,11 +79,11 @@ namespace Kudu.Services.Web.App_Start
                 Shutdown();
             }
 
-            if (_deploymentLock != null)
-            {
-                _deploymentLock.TerminateAsyncLocks();
-                _deploymentLock = null;
-            }
+            //if (_deploymentLock != null)
+            //{
+            //    _deploymentLock.TerminateAsyncLocks();
+            //    _deploymentLock = null;
+            //}
 
             _bootstrapper.ShutDown();
         }
@@ -241,16 +241,16 @@ namespace Kudu.Services.Web.App_Start
             //kernel.Bind<IOperationLock>().ToConstant(_deploymentLock);
             kernel.Bind<IOperationLock>().ToMethod(context =>
             {
-                _deploymentLock = new DeploymentLockFile(deploymentLockPath, context.Kernel.Get<ITraceFactory>(), fileSystem, context.Kernel.Get<IRepositoryFactory>());
-                _deploymentLock.InitializeAsyncLocks();
-                return _deploymentLock;
+                var  deploymentLock = new DeploymentLockFile(deploymentLockPath, context.Kernel.Get<ITraceFactory>(), fileSystem, context.Kernel.Get<IRepositoryFactory>());
+                deploymentLock.InitializeAsyncLocks();
+                return deploymentLock;
             }).InRequestScope();
 
             // Git server
             kernel.Bind<IDeploymentEnvironment>().To<DeploymentEnvrionment>();
 
             kernel.Bind<IGitServer>().ToMethod(context => new GitExeServer(context.Kernel.Get<IEnvironment>(),
-                                                                           _deploymentLock,
+                                                                           context.Kernel.Get<IOperationLock>(),
                                                                            GetRequestTraceFile(context.Kernel),
                                                                            context.Kernel.Get<IRepositoryFactory>(),
                                                                            context.Kernel.Get<IDeploymentEnvironment>(),
