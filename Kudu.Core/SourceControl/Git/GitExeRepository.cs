@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using Kudu.Contracts.Settings;
 using Kudu.Contracts.Tracing;
@@ -366,9 +367,11 @@ echo $i > pushinfo
         public void ClearLock()
         {
             // Delete the lock file from the .git folder
-            var lockFiles = Directory.EnumerateFiles(Path.Combine(_gitExe.WorkingDirectory, ".git"), "*.lock", SearchOption.AllDirectories)
-                                     .Where(fullPath => _lockFileNames.Contains(Path.GetFileName(fullPath), StringComparer.OrdinalIgnoreCase))
-                                     .ToList();
+            var gitDirectoryPath = Path.Combine(_gitExe.WorkingDirectory, ".git");
+            var lockFiles_0 = Directory.EnumerateFiles(gitDirectoryPath, "*.lock", SearchOption.AllDirectories);
+            var lockFiles_1 = lockFiles_0
+                .Where(fullPath => _lockFileNames.Contains(Path.GetFileName(fullPath), StringComparer.OrdinalIgnoreCase));
+            var lockFiles = lockFiles_1.ToList();
             if (lockFiles.Count > 0)
             {
                 ITracer tracer = _tracerFactory.GetTracer();
