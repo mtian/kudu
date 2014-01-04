@@ -23,7 +23,8 @@ namespace Kudu.Core.Deployment
         {
             while (!Debugger.IsAttached)
                 ;
-            //_repositoryFactory.GetRepository().ClearLock();
+            var repository = _repositoryFactory.GetRepository();
+            repository.ClearLock();
         }
     }
 }

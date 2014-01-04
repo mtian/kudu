@@ -236,11 +236,15 @@ namespace Kudu.Services.Web.App_Start
 
             // Setup the deployment lock
             string deploymentLockPath = Path.Combine(lockPath, Constants.DeploymentLockFile);
-            _deploymentLock = new DeploymentLockFile(deploymentLockPath, kernel.Get<ITraceFactory>(), fileSystem, kernel.Get<IRepositoryFactory>());
             //_deploymentLock = new LockFile(deploymentLockPath, kernel.Get<ITraceFactory>(), fileSystem);
-            _deploymentLock.InitializeAsyncLocks();
-
-            kernel.Bind<IOperationLock>().ToMethod(context => _deploymentLock).InRequestScope();
+            //_deploymentLock.InitializeAsyncLocks();
+            //kernel.Bind<IOperationLock>().ToConstant(_deploymentLock);
+            kernel.Bind<IOperationLock>().ToMethod(context =>
+            {
+                _deploymentLock = new DeploymentLockFile(deploymentLockPath, context.Kernel.Get<ITraceFactory>(), fileSystem, context.Kernel.Get<IRepositoryFactory>());
+                _deploymentLock.InitializeAsyncLocks();
+                return _deploymentLock;
+            }).InRequestScope();
 
             // Git server
             kernel.Bind<IDeploymentEnvironment>().To<DeploymentEnvrionment>();
